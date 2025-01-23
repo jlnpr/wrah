@@ -4,6 +4,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import Osoba, Person, Stanowisko, Team
 from .serializers import OsobaSerializer, PersonSerializer, StanowiskoSerializer
+from django.http import HttpResponse, Http404
+import datetime
 
 # określamy dostępne metody żądania dla tego endpointu
 @api_view(['GET'])
@@ -48,8 +50,8 @@ def person_detail(request, pk):
     elif request.method == 'DELETE':
         person.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-@api_view(['GET','POST'])
+    
+@api_view(['GET', 'POST'])    
 def osoba_list(request):
     if request.method == "GET":
         osoby = Osoba.objects.all()
@@ -59,19 +61,19 @@ def osoba_list(request):
         serializer = OsobaSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status= status.HTTP_201_CREATED)
+            return Response(serializer.data, status = status.HTTP_201_CREATED)
         return Response(serializer.errors, status= status.HTTP_400_BAD_REQUEST)
-
-@api_view(['GET','DELETE'])
+    
+@api_view(['GET','DELETE'])    
 def osoba_details(request, pk):
     try:
         osoba = Osoba.objects.get(pk=pk)
-    except Osoba.DoesNotExist :
+    except Osoba.DoesNotExist:
         return Response(status = status.HTTP_404_NOT_FOUND)
     
     if request.method == "GET":
         serializer = OsobaSerializer(osoba)
-        return Response(serializer.data) 
+        return Response(serializer.data)
     elif request.method == "DELETE":
         osoba.delete()
         return Response(status = status.HTTP_204_NO_CONTENT)
@@ -102,10 +104,37 @@ def stanowisko_detail(request, pk):
         stanowisko = Stanowisko.objects.get(pk=pk)
     except Stanowisko.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
-    
+
     if request.method == 'GET':
         serializer = StanowiskoSerializer(stanowisko)
         return Response(serializer.data)
     elif request.method == 'DELETE':
         stanowisko.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+def welcome_view(request):
+    now = datetime.datetime.now()
+    html = f"""
+        <html><body>
+        Witaj użytkowniku! </br>
+        Aktualna data i czas na serwerze: {now}.
+        </body></html>"""
+    return HttpResponse(html)
+
+def person_list_html(request):
+    # pobieramy wszystkie obiekty Person z bazy poprzez QuerySet
+    persons = Person.objects.all()
+    return render(request,
+                  "folder_aplikacji/person/list.html",
+                  {'persons': persons})
+    
+def person_detail_html(request, id):
+    # pobieramy konkretny obiekt Person
+    try:
+        person = Person.objects.get(id=id)
+    except Person.DoesNotExist:
+        raise Http404("Obiekt Person o podanym id nie istnieje")
+
+    return render(request,
+                  "folder_aplikacji/person/detail.html",
+                  {'person': person})
